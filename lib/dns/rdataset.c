@@ -296,7 +296,8 @@ dns_rdataset_current(dns_rdataset_t *rdataset, dns_rdata_t *rdata) {
 	(rdataset->methods->current)(rdataset, rdata);
 }
 
-#define MAX_SHUFFLE	32
+#define MAX_ANSWERS 8
+#define MAX_SHUFFLE	128
 #define WANT_FIXED(r)	(((r)->attributes & DNS_RDATASETATTR_FIXEDORDER) != 0)
 #define WANT_RANDOM(r)	(((r)->attributes & DNS_RDATASETATTR_RANDOMIZE) != 0)
 
@@ -384,6 +385,7 @@ towiresorted(dns_rdataset_t *rdataset, const dns_name_t *owner_name,
 	}
 
 	if (shuffle) {
+
 		/*
 		 * First we get handles to all of the rdata.
 		 */
@@ -519,7 +521,7 @@ towiresorted(dns_rdataset_t *rdataset, const dns_name_t *owner_name,
 
 		if (shuffle) {
 			i++;
-			if (i == count)
+			if (i == count || i == MAX_ANSWERS)
 				result = ISC_R_NOMORE;
 			else
 				result = ISC_R_SUCCESS;
@@ -531,7 +533,13 @@ towiresorted(dns_rdataset_t *rdataset, const dns_name_t *owner_name,
 	if (result != ISC_R_NOMORE)
 		goto rollback;
 
-	*countp += count;
+  /*
+   * limit response to MAX_ANSWERS
+   */
+  if (count > MAX_ANSWERS)
+    count = MAX_ANSWERS;
+
+  *countp += count;
 
 	result = ISC_R_SUCCESS;
 	goto cleanup;
